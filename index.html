@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LRU Cache Visualizer</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+  <!-- Capacity Initializer Modal -->
+  <div class="capacity-modal-overlay" id="capacity-modal">
+    <div class="capacity-modal-card">
+      <div class="logo" style="justify-content: center; margin-bottom: 1.5rem;">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+          stroke-linecap="round" stroke-linejoin="round">
+          <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+          <path d="M3 5V19A9 3 0 0 0 21 19V5" />
+          <path d="M3 12A9 3 0 0 0 21 12" />
+        </svg>
+        <h1
+          style="font-size: 1.8rem; background: linear-gradient(135deg, #fff 30%, var(--primary) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+          LRU Visualizer</h1>
+      </div>
+      <h2>Configure Cache Size</h2>
+      <p>Set the maximum capacity of your LRU Cache to begin simulation (from 2 to 10 entries).</p>
+      <div class="modal-input-row">
+        <input type="number" id="modal-capacity-input" value="4" min="2" max="10" placeholder="Size (2-10)">
+      </div>
+      <button class="btn btn-primary btn-modal" id="btn-modal-start">Initialize & Start</button>
+    </div>
+  </div>
+
+  <!-- Header Section -->
+  <header>
+    <div class="logo">
+      <!-- Custom visualizer SVG icon -->
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+        stroke-linecap="round" stroke-linejoin="round">
+        <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+        <path d="M3 5V19A9 3 0 0 0 21 19V5" />
+        <path d="M3 12A9 3 0 0 0 21 12" />
+      </svg>
+      <h1>LRU Cache Visualizer</h1>
+    </div>
+
+    <!-- Live statistics dashboard -->
+    <div class="stats-bar">
+      <div class="stat-card" title="Successful gets from cache">
+        <span class="stat-label">Hits</span>
+        <span class="stat-val hits" id="stat-hits">0</span>
+      </div>
+      <div class="stat-card" title="Failed gets (elements not found)">
+        <span class="stat-label">Misses</span>
+        <span class="stat-val misses" id="stat-misses">0</span>
+      </div>
+      <div class="stat-card" title="Hit Ratio (%)">
+        <span class="stat-label">Hit Ratio</span>
+        <span class="stat-val ratio" id="stat-ratio">0.0%</span>
+      </div>
+      <div class="stat-card" title="Current cache size vs total capacity">
+        <span class="stat-label">Cache Size</span>
+        <span class="stat-val size" id="stat-size">0 / 4</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <div class="main-container">
+
+    <!-- Left Workspace: Canvas and Controls -->
+    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+
+      <!-- Controls Panel -->
+      <section class="panel">
+        <div class="panel-header">
+          <h2 class="panel-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+              <line x1="8" y1="21" x2="16" y2="21"></line>
+              <line x1="12" y1="17" x2="12" y2="21"></line>
+            </svg>
+            Cache Controllers
+          </h2>
+        </div>
+
+        <div class="controls-grid">
+          <!-- PUT Control Group -->
+          <div class="control-group">
+            <span class="control-label">PUT (Insert / Update)</span>
+            <div class="input-row">
+              <input type="number" id="put-key" placeholder="Key" min="1" max="99">
+              <input type="number" id="put-value" placeholder="Val" min="1" max="999">
+            </div>
+            <button class="btn btn-primary" id="btn-put">put(key, value)</button>
+          </div>
+
+          <!-- GET Control Group -->
+          <div class="control-group">
+            <span class="control-label">GET (Retrieve Key)</span>
+            <div class="input-row">
+              <input type="number" id="get-key" placeholder="Key" min="1" max="99">
+            </div>
+            <button class="btn btn-accent" id="btn-get">get(key)</button>
+          </div>
+
+          <!-- Capacity Setup (User Input) -->
+          <div class="control-group">
+            <span class="control-label">Cache Settings</span>
+            <button class="btn btn-accent" id="btn-change-capacity" style="font-size: 0.85rem;"
+              title="Change maximum cache capacity size">Change Capacity</button>
+            <div style="display: flex; gap: 0.5rem;">
+              <button class="btn" id="btn-random" style="flex: 1; padding: 0.3rem 0.5rem; font-size: 0.8rem;"
+                title="Fill with random key-value pairs">Random</button>
+              <button class="btn" id="btn-clear" style="flex: 1; padding: 0.3rem 0.5rem; font-size: 0.8rem;"
+                title="Clear cache and statistics">Reset</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Animation Stepper Controls -->
+        <div class="stepper-bar">
+          <div class="step-controls">
+            <button class="btn" id="btn-play-pause" title="Play / Pause automatic execution">
+              <svg id="play-pause-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+              </svg>
+              <span id="play-pause-text">Auto Play</span>
+            </button>
+            <button class="btn" id="btn-step" disabled title="Advance one instruction at a time">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="5 4 15 12 5 20 5 4"></polygon>
+                <line x1="19" y1="5" x2="19" y2="19"></line>
+              </svg>
+              Step Forward
+            </button>
+            <button class="btn" id="btn-skip" disabled title="Instantly complete current operation">
+              Skip to End
+            </button>
+          </div>
+
+          <div class="speed-slider-container">
+            <span class="control-label">Delay: <strong id="speed-val"
+                style="color: var(--primary);">1200</strong>ms</span>
+            <input type="range" id="speed-range" min="200" max="3000" step="100" value="1200">
+          </div>
+        </div>
+      </section>
+
+      <!-- Visual Display Area -->
+      <section class="panel" style="flex: 1;">
+        <div class="panel-header">
+          <h2 class="panel-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+              <polyline points="2 17 12 22 22 17"></polyline>
+              <polyline points="2 12 12 17 22 12"></polyline>
+            </svg>
+            Live Visualization
+          </h2>
+        </div>
+
+        <div class="visualization-area">
+          <!-- HashMap representation -->
+          <div class="hashmap-view">
+            <div
+              style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 600; letter-spacing: 0.05em;">
+              HashMap (Key ➔ Node Address)</div>
+            <div class="hashmap-grid" id="hm-container">
+              <div style="color: var(--text-secondary); font-size: 0.85rem; font-style: italic;">HashMap is empty.
+                Perform a PUT operation.</div>
+            </div>
+          </div>
+
+          <!-- Doubly Linked List representation -->
+          <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+            <div
+              style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 600; letter-spacing: 0.05em; margin-left: 0.5rem;">
+              Doubly Linked List (Head ➔ MRU | Tail ➔ LRU)</div>
+            <div class="dll-canvas" id="dll-container">
+              <!-- Dynamically rendered list nodes -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- Right Workspace: Code Viewer and Logs -->
+    <div class="right-pane">
+
+      <!-- Code Execution Stepper -->
+      <section class="panel">
+        <div class="panel-header">
+          <h2 class="panel-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="16 18 22 12 16 6"></polyline>
+              <polyline points="8 6 2 12 8 18"></polyline>
+            </svg>
+            Code Execution Stepper
+          </h2>
+          <div class="code-tabs">
+            <button class="tab-btn active" id="tab-java">Java</button>
+            <button class="tab-btn" id="tab-js">JavaScript</button>
+          </div>
+        </div>
+
+        <!-- Code Block Panels with IDE Shell Frame -->
+        <div class="ide-header">
+          <div class="ide-dots">
+            <span class="ide-dot red"></span>
+            <span class="ide-dot yellow"></span>
+            <span class="ide-dot green"></span>
+          </div>
+          <span class="ide-title" id="ide-title">LRUCache.java</span>
+        </div>
+        <div class="code-container">
+
+          <!-- Java Code Container -->
+          <div class="code-block active" id="code-java">
+            <div class="code-line-row" id="java-l0"><span class="line-num">0</span><span class="line-code"><span
+                  class="code-comment">// LRUCache Class Methods</span></span></div>
+            <div class="code-line-row" id="java-l1"><span class="line-num">1</span><span class="line-code"><span
+                  class="code-keyword">public int</span> <span class="code-fn">get</span>(<span
+                  class="code-keyword">int</span> key) {</span></div>
+            <div class="code-line-row" id="java-l2"><span class="line-num">2</span><span
+                class="line-code">&nbsp;&nbsp;&nbsp;&nbsp;<span class="code-keyword">if</span> (hm.containsKey(key))
+                {</span></div>
+            <div class="code-line-row" id="java-l3"><span class="line-num">3</span><span
+                class="line-code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Node node = hm.get(key);</span></div>
+            <div class="code-line-row" id="java-l4"><span class="line-num">4</span><span
+                class="line-code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span
+                  class="code-fn">remove</span>(node);</span></div>
+            <div class="code-line-row" id="java-l5"><span class="line-num">5</span><span
+                class="line-code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span
+                  class="code-fn">insert</span>(node);</span></div>
+            <div class="code-line-row" id="java-l6"><span class="line-num">6</span><span
+                class="line-code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span
+                  class="code-keyword">return</span> node.value;</span></div>
+            <div class="code-line-row" id="java-l7"><span class="line-num">7</span><span
+                class="line-code">&nbsp;&nbsp;&nbsp;&nbsp;} <span class="code-keyword">else</span> {</span></div>
+            <div class="code-line-row" id="java-l8"><span class="line-num">8</span><span
+                class="line-code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span
+                  class="code-keyword">return</span> -1;</span></div>
+            <div class="code-line-row" id="java-l9"><span class="line-num">9</span><span
+                class="line-code">&nbsp;&nbsp;&nbsp;&nbsp;}</span></div>
+            <div class="code-line-row" id="java-l10"><span class="line-num">10</span><span class="line-code">}</span>
+            </div>
+            <div class="code-line-row" id="java-l11"><span class="line-num">11</span><span class="line-code"><span
+                  class="code-keyword">public void</span> <span class="code-fn">put</span>(<span
+                  class="code-keyword">int</span> key, <span class="code-keyword">int</span> value) {</span></div>
+            <div class="code-line-row" id="java-l12"><span class="line-num">12</span><span
+                class="line-code">&nbsp;&nbsp;&nbsp;&nbsp;<span class="code-keyword">if</span> (hm.containsKey(key))
+                {</span></div>
+            <div class="code-line-row" id="java-l13"><span class="line-num">13</span><span
+                class="line-code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span
+                  class="code-fn">remove</span>(hm.get(key));</span></div>
+            <div class="code-line-row" id="java-l14"><span class="line-num">14</span><span
+                class="line-code">&nbsp;&nbsp;&nbsp;&nbsp;}</span></div>
+            <div class="code-line-row" id="java-l15"><span class="line-num">15</span><span
+                class="line-code">&nbsp;&nbsp;&nbsp;&nbsp;<span class="code-keyword">if</span> (hm.size() == capacity)
+                {</span></div>
+            <div class="code-line-row" id="java-l16"><span class="line-num">16</span><span
+                class="line-code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span
+                  class="code-fn">remove</span>(tail.prev);</span></div>
+            <div class="code-line-row" id="java-l17"><span class="line-num">17</span><span
+                class="line-code">&nbsp;&nbsp;&nbsp;&nbsp;}</span></div>
+            <div class="code-line-row" id="java-l18"><span class="line-num">18</span><span
+                class="line-code">&nbsp;&nbsp;&nbsp;&nbsp;<span class="code-fn">insert</span>(<span
+                  class="code-keyword">new</span> Node(key, value));</span></div>
+            <div class="code-line-row" id="java-l19"><span class="line-num">19</span><span class="line-code">}</span>
+            </div>
+            <div class="code-line-row" id="java-l20"><span class="line-num">20</span><span class="line-code"><span
+                  class="code-keyword">public void</span> <span class="code-fn">insert</span>(Node node) {</span></div>
+            <div class="code-line-row" id="java-l21"><span class="line-num">21</span><span
+                class="line-code">&nbsp;&nbsp;&nbsp;&nbsp;hm.put(node.key, node);</span></div>
+            <div class="code-line-row" id="java-l22"><span class="line-num">22</span><span
+                class="line-code">&nbsp;&nbsp;&nbsp;&nbsp;node.next = head.next;</span></div>
+            <div class="code-line-row" id="java-l23"><span class="line-num">23</span><span
+                class="line-code">&nbsp;&nbsp;&nbsp;&nbsp;node.next.prev = node;</span></div>
+            <div class="code-line-row" id="java-l24"><span class="line-num">24</span><span
+                class="line-code">&nbsp;&nbsp;&nbsp;&nbsp;head.next = node;</span></div>
+            <div class="code-line-row" id="java-l25"><span class="line-num">25</span><span
+                class="line-code">&nbsp;&nbsp;&nbsp;&nbsp;node.prev = head;</span></div>
+            <div class="code-line-row" id="java-l26"><span class="line-num">26</span><span class="line-code">}</span>
+            </div>
+            <div class="code-line-row" id="java-l27"><span class="line-num">27</span><span class="line-code"><span
+                  class="code-keyword">public void</span> <span class="code-fn">remove</span>(Node node) {</span></div>
+            <div class="code-line-row" id="java-l28"><span class="line-num">28</span><span
+                class="line-code">&nbsp;&nbsp;&nbsp;&nbsp;hm.remove(node.key);</span></div>
+            <div class="code-line-row" id="java-l29"><span class="line-num">29</span><span
+                class="line-code">&nbsp;&nbsp;&nbsp;&nbsp;node.prev.next = node.next;</span></div>
+            <div class="code-line-row" id="java-l30"><span class="line-num">30</span><span
+                class="line-code">&nbsp;&nbsp;&nbsp;&nbsp;node.next.prev = node.prev;</span></div>
+            <div class="code-line-row" id="java-l31"><span class="line-num">31</span><span class="line-code">}</span>
+            </div>
+          </div>
+
+          <!-- JS Code Container -->
+          <div class="code-block" id="code-js">
+            <div class="code-line-row" id="js-l0"><span class="line-num">0</span><span class="line-code"><span
+                  class="code-comment">// LRUCache Class Methods</span></span></div>
+            <div class="code-line-row" id="js-l1"><span class="line-num">1</span><span class="line-code"><span
+                  class="code-fn">get</span>(key) {</span></div>
+            <div class="code-line-row" id="js-l2"><span class="line-num">2</span><span
+                class="line-code">&nbsp;&nbsp;&nbsp;&nbsp;<span class="code-keyword">if</span> (<span
+                  class="code-keyword">this</span>.hm.has(key)) {</span></div>
+            <div class="code-line-row" id="js-l3"><span class="line-num">3</span><span
+                class="line-code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span
+                  class="code-keyword">const</span> node = <span class="code-keyword">this</span>.hm.get(key);</span>
+            </div>
+            <div class="code-line-row" id="js-l4"><span class="line-num">4</span><span
+                class="line-code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span
+                  class="code-keyword">this</span>.<span class="code-fn">remove</span>(node);</span></div>
+            <div class="code-line-row" id="js-l5"><span class="line-num">5</span><span
+                class="line-code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span
+                  class="code-keyword">this</span>.<span class="code-fn">insert</span>(node);</span></div>
+            <div class="code-line-row" id="js-l6"><span class="line-num">6</span><span
+                class="line-code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span
+                  class="code-keyword">return</span> node.value;</span></div>
+            <div class="code-line-row" id="js-l7"><span class="line-num">7</span><span
+                class="line-code">&nbsp;&nbsp;&nbsp;&nbsp;} <span class="code-keyword">else</span> {</span></div>
+            <div class="code-line-row" id="js-l8"><span class="line-num">8</span><span
+                class="line-code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span
+                  class="code-keyword">return</span> -1;</span></div>
+            <div class="code-line-row" id="js-l9"><span class="line-num">9</span><span
+                class="line-code">&nbsp;&nbsp;&nbsp;&nbsp;}</span></div>
+            <div class="code-line-row" id="js-l10"><span class="line-num">10</span><span class="line-code">}</span>
+            </div>
+            <div class="code-line-row" id="js-l11"><span class="line-num">11</span><span class="line-code"><span
+                  class="code-fn">put</span>(key, value) {</span></div>
+            <div class="code-line-row" id="js-l12"><span class="line-num">12</span><span
+                class="line-code">&nbsp;&nbsp;&nbsp;&nbsp;<span class="code-keyword">if</span> (<span
+                  class="code-keyword">this</span>.hm.has(key)) {</span></div>
+            <div class="code-line-row" id="js-l13"><span class="line-num">13</span><span
+                class="line-code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span
+                  class="code-keyword">this</span>.<span class="code-fn">remove</span>(<span
+                  class="code-keyword">this</span>.hm.get(key));</span></div>
+            <div class="code-line-row" id="js-l14"><span class="line-num">14</span><span
+                class="line-code">&nbsp;&nbsp;&nbsp;&nbsp;}</span></div>
+            <div class="code-line-row" id="js-l15"><span class="line-num">15</span><span
+                class="line-code">&nbsp;&nbsp;&nbsp;&nbsp;<span class="code-keyword">if</span> (<span
+                  class="code-keyword">this</span>.hm.size === <span class="code-keyword">this</span>.capacity) {</span>
+            </div>
+            <div class="code-line-row" id="js-l16"><span class="line-num">16</span><span
+                class="line-code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span
+                  class="code-keyword">this</span>.<span class="code-fn">remove</span>(<span
+                  class="code-keyword">this</span>.tail.prev);</span></div>
+            <div class="code-line-row" id="js-l17"><span class="line-num">17</span><span
+                class="line-code">&nbsp;&nbsp;&nbsp;&nbsp;}</span></div>
+            <div class="code-line-row" id="js-l18"><span class="line-num">18</span><span
+                class="line-code">&nbsp;&nbsp;&nbsp;&nbsp;<span class="code-keyword">this</span>.<span
+                  class="code-fn">insert</span>(<span class="code-keyword">new</span> Node(key, value));</span></div>
+            <div class="code-line-row" id="js-l19"><span class="line-num">19</span><span class="line-code">}</span>
+            </div>
+            <div class="code-line-row" id="js-l20"><span class="line-num">20</span><span class="line-code"><span
+                  class="code-fn">insert</span>(node) {</span></div>
+            <div class="code-line-row" id="js-l21"><span class="line-num">21</span><span
+                class="line-code">&nbsp;&nbsp;&nbsp;&nbsp;<span class="code-keyword">this</span>.hm.set(node.key,
+                node);</span></div>
+            <div class="code-line-row" id="js-l22"><span class="line-num">22</span><span
+                class="line-code">&nbsp;&nbsp;&nbsp;&nbsp;node.next = <span
+                  class="code-keyword">this</span>.head.next;</span></div>
+            <div class="code-line-row" id="js-l23"><span class="line-num">23</span><span
+                class="line-code">&nbsp;&nbsp;&nbsp;&nbsp;node.next.prev = node;</span></div>
+            <div class="code-line-row" id="js-l24"><span class="line-num">24</span><span
+                class="line-code">&nbsp;&nbsp;&nbsp;&nbsp;<span class="code-keyword">this</span>.head.next =
+                node;</span></div>
+            <div class="code-line-row" id="js-l25"><span class="line-num">25</span><span
+                class="line-code">&nbsp;&nbsp;&nbsp;&nbsp;node.prev = <span
+                  class="code-keyword">this</span>.head;</span></div>
+            <div class="code-line-row" id="js-l26"><span class="line-num">26</span><span class="line-code">}</span>
+            </div>
+            <div class="code-line-row" id="js-l27"><span class="line-num">27</span><span class="line-code"><span
+                  class="code-fn">remove</span>(node) {</span></div>
+            <div class="code-line-row" id="js-l28"><span class="line-num">28</span><span
+                class="line-code">&nbsp;&nbsp;&nbsp;&nbsp;<span
+                  class="code-keyword">this</span>.hm.delete(node.key);</span></div>
+            <div class="code-line-row" id="js-l29"><span class="line-num">29</span><span
+                class="line-code">&nbsp;&nbsp;&nbsp;&nbsp;node.prev.next = node.next;</span></div>
+            <div class="code-line-row" id="js-l30"><span class="line-num">30</span><span
+                class="line-code">&nbsp;&nbsp;&nbsp;&nbsp;node.next.prev = node.prev;</span></div>
+            <div class="code-line-row" id="js-l31"><span class="line-num">31</span><span class="line-code">}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stepper Explanations -->
+        <div class="explanation-box" id="explanation-box">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+          <div id="explanation-text">
+            <strong>System Idle.</strong> Enter a key/value pair and execute a <strong>PUT</strong> or
+            <strong>GET</strong> command to watch the LRU cache flow!
+          </div>
+        </div>
+      </section>
+
+      <!-- Operation Timeline Panel -->
+      <section class="panel">
+        <div class="panel-header">
+          <h2 class="panel-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+            Operation Timeline
+          </h2>
+          <button class="btn" id="btn-copy-timeline" style="padding: 0.35rem 0.6rem; display: flex; align-items: center; justify-content: center; gap: 0.3rem; font-size: 0.75rem;" title="Copy timeline to clipboard">
+            <svg id="copy-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            <span id="copy-text">Copy</span>
+          </button>
+        </div>
+        <div class="timeline-container">
+          <div class="timeline-empty" id="timeline-empty">No operations performed yet. Run PUT or GET!</div>
+          <div class="timeline-content hidden" id="timeline-content"></div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script src="app.js?v=2"></script>
+</body>
+
+</html>

@@ -1,0 +1,13 @@
+{
+  "name": "lru-cache-visualizer",
+  "version": "1.0.0",
+  "description": "Premium interactive visualizer for LRU Cache operations.",
+  "main": "app.js",
+  "scripts": {
+    "start": "npx http-server -p 8081 -o"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
+}
